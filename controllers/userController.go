@@ -45,6 +45,41 @@ func GetUser() gin.HandlerFunc {
 	}
 }
 
+func VerifyPassword(userPassword string, providedPassword string) (bool, string) {
+    err := bcrypt.CompareHashAndPassword([]byte(providedPassword), []byte(userPassword))
+    check := true
+    msg := ""
+
+    if err != nil {
+        msg := fmt.Sprintf("password is incorrect: %s". err.Error())
+        check = false
+    }
+
+    return check, msg
+}
+
+func Login() gin.HandlerFunc {
+    return func(c *gin.Context) {
+       var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+       var user models.User
+       var foundUser models.User
+
+       if err := c.BindJSON(&user); err != nil {
+            c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+            return
+       }
+
+       userCollection.FindOne(ctx, bson.M{"email": user.Email}).Decode(&foundUser)
+       defer cancel()
+       if err != nil {
+            c.JSON(http.StatusBadRequest, gin.H{"error": "email does not exist"})
+            return
+       }
+       passwordIsValid, msg := VerifyPassword(*user.Password, *foundUser.Password)
+       defer cancel()
+    }
+}
+
 func SignUp() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
@@ -89,7 +124,7 @@ func SignUp() gin.HandlerFunc {
 
 		resultInsertionNumber, insertErr := userCollection.InsertOne(ctx, user)
 		if insertErr != nil {
-			msg := fmt.Sprintf("user item was not created : %s", insertErr)
+			msg := fmt.Sprintf("user item was not created : %s", insertErr.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 			return
 		}
