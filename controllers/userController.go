@@ -29,6 +29,17 @@ func GetUser() gin.HandlerFunc {
             c.JSON(http.StatusBadRequest, gin.H{ "error" : err.Error() })
             return
         }
+
+        var ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+
+        var user models.User
+        err := userCollection.FindOne(ctx, bson.M{"user_id" : userId}).Decode(&user)
+        defer cancel
+        if err != nil {
+            c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+            return err
+        }
+        c.JSON(http.StatusOk, user)
     }
 }
 
