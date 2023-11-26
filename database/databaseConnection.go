@@ -1,42 +1,42 @@
 package database
 
-import(
-"fmt"
-"log"
-"time"
-"os"
-"github.com/joho/godotenv"
-"go.mongodb.org/mongodb-driver/mongo"
-"go/mongodb.org/mongo-driver/mongo/options"
+import (
+	"fmt"
+	"github.com/joho/godotenv"
+	"go.mongodb.org/mongodb-driver/mongo"
+	"go/mongodb.org/mongo-driver/mongo/options"
+	"log"
+	"os"
+	"time"
 )
 
 func DBInstance() *mongo.Client {
-    err := godotenv.Load(".env")
-    if err != nil {
-        log.Fatal("error Loading env file")
-    }
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatal("error Loading env file")
+	}
 
-    MongoDb := os.Getenv("MONGODB_URL")
-    client, err := mongo.NewClient(options.Client().ApplyURI(MongoDb))
-    if err != nil {
-        log.Fatal(err)
-    }
+	MongoDb := os.Getenv("MONGODB_URL")
+	client, err := mongo.NewClient(options.Client().ApplyURI(MongoDb))
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-    defer cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-    err = client.Connect(ctx)
-    if err != nil {
-        log.Fatal(err)
-    }
+	err = client.Connect(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    fmt.Println("Connected to MongoDb")
-    return client
+	fmt.Println("Connected to MongoDb")
+	return client
 }
 
 var Client *mongo.client = DBInstance()
 
 func OpenCollection(client *mongo.Client, collectionName string) *mongo.Collection {
-    var collection *mongo.Collection = client.Database("cluster0").Collection(collectionName)
-    return collection
+	var collection *mongo.Collection = client.Database("cluster0").Collection(collectionName)
+	return collection
 }
