@@ -2,7 +2,7 @@ package models
 
 import (
     "time"
-	"go.mongodb.org/mongodb-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type User struct {

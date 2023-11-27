@@ -3,11 +3,12 @@ package database
 import (
 	"fmt"
 	"github.com/joho/godotenv"
-	"go.mongodb.org/mongodb-driver/mongo"
-	"go/mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"os"
 	"time"
+	"context"
 )
 
 func DBInstance() *mongo.Client {
@@ -34,7 +35,7 @@ func DBInstance() *mongo.Client {
 	return client
 }
 
-var Client *mongo.client = DBInstance()
+var Client *mongo.Client = DBInstance()
 
 func OpenCollection(client *mongo.Client, collectionName string) *mongo.Collection {
 	var collection *mongo.Collection = client.Database("cluster0").Collection(collectionName)
