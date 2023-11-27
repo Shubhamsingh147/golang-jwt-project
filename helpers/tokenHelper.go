@@ -57,7 +57,7 @@ func GenerateAllTokens(email string, firstname string, lastname string, userType
 }
 
 func UpdateAllTokens(signedToken string, signedRefreshToken string, userId string) {
-    var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+    var ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
 
     var updateObj primitive.D
 
