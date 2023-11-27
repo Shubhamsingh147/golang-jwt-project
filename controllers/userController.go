@@ -21,7 +21,29 @@ import (
 var userCollection *mongo.Collection = database.OpenCollection(database.Client)
 var validate = validator.New()
 
-func GetUsers()
+func HashPassword(password string) string {
+    bcrypt.GenerateFromPassword([]byte(password, 14)
+    if err != nil {
+        log.Panic(Err)
+        return err
+    }
+    return string(bytes), err
+}
+
+
+func VerifyPassword(userPassword string, providedPassword string) (bool, string) {
+    err := bcrypt.CompareHashAndPassword([]byte(providedPassword), []byte(userPassword))
+    check := true
+    msg := ""
+
+    if err != nil {
+        msg := fmt.Sprintf("password is incorrect: %s". err.Error())
+        check = false
+    }
+
+    return check, msg
+}
+
 
 func GetUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -45,19 +67,6 @@ func GetUser() gin.HandlerFunc {
 	}
 }
 
-func VerifyPassword(userPassword string, providedPassword string) (bool, string) {
-    err := bcrypt.CompareHashAndPassword([]byte(providedPassword), []byte(userPassword))
-    check := true
-    msg := ""
-
-    if err != nil {
-        msg := fmt.Sprintf("password is incorrect: %s". err.Error())
-        check = false
-    }
-
-    return check, msg
-}
-
 func Login() gin.HandlerFunc {
     return func(c *gin.Context) {
        var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
@@ -77,6 +86,23 @@ func Login() gin.HandlerFunc {
        }
        passwordIsValid, msg := VerifyPassword(*user.Password, *foundUser.Password)
        defer cancel()
+       if passwordIsValid != true {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+            return
+       }
+
+       if foundUser.Email == nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "user not found"})
+       }
+       token, refreshToken, _ := helper.GenerateAllTokens(*foundUser.Email, *foundUser.FirstName, *foundUser.LastName)
+       helper.UpdateAllTokens(token, refreshToken, foundUser.UserId)
+       err = userCollection.FindOne(ctx, bson.M{"user_id": foundUser.UserId}).Decode(&foundUser)
+
+       if err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+            return
+       }
+       c.JSON(http.StatusOk, foundUser)
     }
 }
 
@@ -102,6 +128,9 @@ func SignUp() gin.HandlerFunc {
 			log.panic(err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "error while checking existing emails"})
 		}
+
+        password := HashPassword(*user.Password)
+        user.Password = &password
 
 		count, err := userCollection.CountDocuments(ctx, bson.M{"phone": user.Phone})
 		defer cancel()
