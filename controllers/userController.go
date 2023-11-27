@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang-jwt-artica/database"
@@ -17,16 +18,16 @@ import (
 	"time"
 )
 
-var userCollection *mongo.Collection = database.OpenCollection(database.Client)
+var userCollection *mongo.Collection = database.OpenCollection(database.Client, "go-auth")
 var validate = validator.New()
 
 func HashPassword(password string) string {
-	bcrypt.GenerateFromPassword([]byte(password, 14))
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	if err != nil {
-		log.Panic(Err)
-		return err
+		log.Panic(err)
+		return err.Error()
 	}
-	return string(bytes), err
+	return string(hash)
 }
 
 func VerifyPassword(userPassword string, providedPassword string) (bool, string) {
@@ -35,7 +36,7 @@ func VerifyPassword(userPassword string, providedPassword string) (bool, string)
 	msg := ""
 
 	if err != nil {
-		msg := fmt.Sprintf("password is incorrect: %s".err.Error())
+		msg = fmt.Sprintf("password is incorrect: %s", err.Error())
 		check = false
 	}
 
@@ -73,7 +74,7 @@ func GetUsers() gin.HandlerFunc {
 				{"user_items", bson.D{{"$slice", []interface{}{"$data", startIndex, recordPerPage}}}},
 			}},
 		}
-		userCollection.Aggregate(ctx, mongo.Pipeline{
+		result, err := userCollection.Aggregate(ctx, mongo.Pipeline{
 			matchStage, groupStage, projectStage,
 		})
 		defer cancel()
@@ -84,7 +85,7 @@ func GetUsers() gin.HandlerFunc {
 		if err = result.All(ctx, &allUsers); err != nil {
 			log.Fatal(err)
 		}
-		c.JSON(http.StatusOk, allUsers[0])
+		c.JSON(http.StatusOK, allUsers[0])
 	}
 }
 
@@ -104,9 +105,9 @@ func GetUser() gin.HandlerFunc {
 		defer cancel()
 		if err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-			return err
+			return
 		}
-		c.JSON(http.StatusOk, user)
+		c.JSON(http.StatusOK, user)
 	}
 }
 
@@ -121,7 +122,7 @@ func Login() gin.HandlerFunc {
 			return
 		}
 
-		userCollection.FindOne(ctx, bson.M{"email": user.Email}).Decode(&foundUser)
+		err := userCollection.FindOne(ctx, bson.M{"email": user.Email}).Decode(&foundUser)
 		defer cancel()
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "email does not exist"})
@@ -137,7 +138,7 @@ func Login() gin.HandlerFunc {
 		if foundUser.Email == nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "user not found"})
 		}
-		token, refreshToken, _ := helper.GenerateAllTokens(*foundUser.Email, *foundUser.FirstName, *foundUser.LastName)
+		token, refreshToken, _ := helper.GenerateAllTokens(*foundUser.Email, *foundUser.FirstName, *foundUser.LastName, *foundUser.UserType, *&foundUser.UserId)
 		helper.UpdateAllTokens(token, refreshToken, foundUser.UserId)
 		err = userCollection.FindOne(ctx, bson.M{"user_id": foundUser.UserId}).Decode(&foundUser)
 
@@ -145,7 +146,7 @@ func Login() gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOk, foundUser)
+		c.JSON(http.StatusOK, foundUser)
 	}
 }
 
@@ -168,17 +169,17 @@ func SignUp() gin.HandlerFunc {
 		count, err := userCollection.CountDocuments(ctx, bson.M{"email": user.Email})
 		defer cancel()
 		if err != nil {
-			log.panic(err)
+			log.Panic(err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "error while checking existing emails"})
 		}
 
 		password := HashPassword(*user.Password)
 		user.Password = &password
 
-		count, err := userCollection.CountDocuments(ctx, bson.M{"phone": user.Phone})
+		count, err = userCollection.CountDocuments(ctx, bson.M{"phone": user.Phone})
 		defer cancel()
 		if err != nil {
-			log.panic(err)
+			log.Panic(err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "error while checking existing phones"})
 		}
 
@@ -189,7 +190,7 @@ func SignUp() gin.HandlerFunc {
 		user.CreatedAt, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
 		user.UpdatedAt, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
 		user.ID = primitive.NewObjectID()
-		user.UserId, _ = user.ID.Hex()
+		user.UserId = user.ID.Hex()
 		token, refreshToken, _ := helper.GenerateAllTokens(*user.Email, *user.FirstName, *user.LastName, *user.UserType, *&user.UserId)
 		user.Token = &token
 		user.RefreshToken = &refreshToken
@@ -201,6 +202,6 @@ func SignUp() gin.HandlerFunc {
 			return
 		}
 		defer cancel()
-		c.JSON(http.StatusOk, resultInsertionNumber)
+		c.JSON(http.StatusOK, resultInsertionNumber)
 	}
 }

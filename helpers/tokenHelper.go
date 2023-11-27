@@ -6,8 +6,8 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo"
 	"golang-jwt-artica/database"
 	"log"
 	"os"
@@ -23,7 +23,7 @@ type SignedDetails struct {
 	jwt.StandardClaims
 }
 
-var userCollection *mongoCollection = database.OpenCollection(database.Client, "user")
+var userCollection *mongo.Collection = database.OpenCollection(database.Client, "user")
 
 var SECRET_KEY string = os.Getenv("SECRET_KEY")
 
@@ -35,7 +35,7 @@ func GenerateAllTokens(email string, firstname string, lastname string, userType
 		Uid:       uid,
 		UserType:  userType,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Local().Add(time.Minutes * time.Duration(5)).Unix(),
+			ExpiresAt: time.Now().Local().Add(time.Minute * time.Duration(5)).Unix(),
 		},
 	}
 
@@ -92,7 +92,7 @@ func UpdateAllTokens(signedToken string, signedRefreshToken string, userId strin
 }
 
 func ValidateToken(signedToken string) (claims *SignedDetails, msg string) {
-	token := jwt.ParseWithClaims(
+	token, err := jwt.ParseWithClaims(
 		signedToken,
 		&SignedDetails{},
 		func(token *jwt.Token) (interface{}, error) {

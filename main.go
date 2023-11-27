@@ -2,6 +2,8 @@ package main
 
 import(
     "os"
+    "log"
+    "github.com/joho/godotenv"
     "github.com/gin-gonic/gin"
     routes "golang-jwt-artica/routes"
 )
