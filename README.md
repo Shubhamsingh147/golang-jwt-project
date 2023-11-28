@@ -9,11 +9,17 @@ That's it!
 <h3>Functionalities</h3>
 
  POST   /users/signup             --> golang-jwt-artica/routes.AuthRoutes.SignUp.func1 (2 handlers)
+
  POST   /users/login              --> golang-jwt-artica/routes.AuthRoutes.Login.func2 (2 handlers)
+
  GET    /users                    --> golang-jwt-artica/routes.UserRoutes.GetUsers.func2 (3 handlers)
+
  GET    /users/:id                --> golang-jwt-artica/routes.UserRoutes.GetUser.func3 (3 handlers)
+
  GET    /api-1                    --> main.main.func1 (3 handlers)
+
  GET    /api-2                    --> main.main.func2 (3 handlers)
+
 
 api-1 is First factor auth
 api-2 is Second factor auth
