@@ -1,0 +1,22 @@
+version: "3.7"
+
+services:
+  mongo-db:
+    image: mongo:latest
+    ports:
+      - '27017:27017'
+    volumes:
+      - ./go-auth:/data/db
+  app:
+    image: solitude-hub/app
+    ports:
+      - "8000:8000"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - mongo-db
+
+volumes:
+  mongo-db: {}
+

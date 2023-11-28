@@ -5,6 +5,7 @@ WORKDIR /usr/local/go/src/golang-jwt-artica
 
 RUN go mod tidy
 RUN go mod vendor
-RUN go build -o main main.go
+RUN go build -o main .
+
 EXPOSE 8000
-CMD [ "/app/main" ]
+CMD ["/usr/local/go/src/golang-jwt-artica/main"]
